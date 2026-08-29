@@ -35,8 +35,8 @@ def test_send_message_provider_routing(monkeypatch):
     # Mock the router.py route_and_execute function so we don't actually call Ollama/Anthropic
     def mock_route_and_execute(db, message, skill, provider):
         if provider == "cloud":
-            return "Mocked Cloud Response", None
-        return "Mocked Local Response", None
+            return "Mocked Cloud Response", None, []
+        return "Mocked Local Response", None, []
 
     import app.agents.router as router_module
     monkeypatch.setattr(router_module, "route_and_execute", mock_route_and_execute)
@@ -68,7 +68,7 @@ def test_persistence_behavior(monkeypatch):
 
     # Mock routing to avoid hitting LLM
     import app.agents.router as router_module
-    monkeypatch.setattr(router_module, "route_and_execute", lambda db, m, s, p: ("Hello Persistence", None))
+    monkeypatch.setattr(router_module, "route_and_execute", lambda db, m, s, provider: ("Hello Persistence", None, []))
 
     # Send a message
     client.post(f"/api/v1/sessions/{session_id}/messages", json={"content": "Persist this"})

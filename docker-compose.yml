@@ -62,7 +62,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
-      - D:\Mrityunjay\Projects\Oogway\data\lenny-transcripts:/data/lenny-transcripts
+      - ${TRANSCRIPTS_HOST_DIR:-./data/lenny-transcripts}:/data/lenny-transcripts
     command: python scripts/ingest_transcripts.py
     restart: "no"
 
