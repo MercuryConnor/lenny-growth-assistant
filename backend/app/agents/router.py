@@ -15,12 +15,14 @@ def route_and_execute(db: Session, message: str, skill: str = "qa", provider: st
         db_status = "✅ Knowledge base is live" if chunks else "⚠️ Knowledge base is empty"
         return (
             "Hi! I am The Lenny Growth Assistant.",
-            None
+            None,
+            []
         )
 
     # 1. Retrieve context
     chunks = retrieve_relevant_chunks(db, message, top_k=5)
-    context = "\n\n".join([c.content for c in chunks])
+    context = "\n\n".join([c["text"] for c in chunks])
+    citations = [{"title": c["title"], "url": c["url"]} for c in chunks]
     
     if not context:
         context = "No relevant context found in the transcripts."
@@ -105,4 +107,4 @@ Answer:
             # Remove artifact from main chat response or replace with a placeholder
             response_text = response_text[:start_idx] + "\n[Artifact Generated]\n" + response_text[end_idx:]
 
-    return response_text, artifact
+    return response_text, artifact, citations

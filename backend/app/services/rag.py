@@ -41,8 +41,17 @@ def retrieve_relevant_chunks(db: Session, query: str, top_k: int = 5):
     query_embedding = embeddings_model.embed_query(query)
     
     # Perform cosine similarity search using pgvector
-    results = db.query(TranscriptChunk).order_by(
+    from sqlalchemy.orm import joinedload
+    results = db.query(TranscriptChunk).options(joinedload(TranscriptChunk.transcript)).order_by(
         TranscriptChunk.embedding.cosine_distance(query_embedding)
     ).limit(top_k).all()
     
-    return results
+    formatted_results = []
+    for r in results:
+        formatted_results.append({
+            "text": r.content,
+            "title": r.transcript.title if r.transcript else "Unknown Episode",
+            "url": r.transcript.source_url if r.transcript else "#"
+        })
+        
+    return formatted_results

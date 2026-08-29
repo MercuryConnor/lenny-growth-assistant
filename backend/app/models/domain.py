@@ -76,3 +76,5 @@ class TranscriptChunk(Base):
     transcript_id = Column(UUID(as_uuid=True), ForeignKey("transcripts.id"))
     content = Column(Text)
     embedding = Column(Vector(768)) # Default size for nomic-embed-text
+    
+    transcript = relationship("Transcript")

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models import domain
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 router = APIRouter()
 
@@ -13,6 +13,17 @@ class SessionCreate(BaseModel):
 class SessionResponse(BaseModel):
     id: str
     title: str
+    created_at: str
+
+class MessageResponse(BaseModel):
+    role: str
+    content: str
+    artifact: Optional[dict] = None
+    citations: Optional[List[dict]] = None
+    created_at: str
+
+class SessionDetailResponse(SessionResponse):
+    messages: List[MessageResponse]
 
 @router.get("/health")
 def health_check():
@@ -32,7 +43,54 @@ def create_session(session_req: SessionCreate, db: Session = Depends(get_db)):
     db.add(db_session)
     db.commit()
     db.refresh(db_session)
-    return SessionResponse(id=str(db_session.id), title=db_session.title)
+    return SessionResponse(id=str(db_session.id), title=db_session.title, created_at=db_session.created_at.isoformat())
+
+@router.get("/sessions", response_model=List[SessionResponse])
+def get_sessions(db: Session = Depends(get_db)):
+    sessions = db.query(domain.Session).order_by(domain.Session.created_at.desc()).all()
+    return [SessionResponse(id=str(s.id), title=s.title, created_at=s.created_at.isoformat()) for s in sessions]
+
+@router.get("/sessions/{session_id}", response_model=SessionDetailResponse)
+def get_session(session_id: str, db: Session = Depends(get_db)):
+    db_session = db.query(domain.Session).filter(domain.Session.id == session_id).first()
+    if not db_session:
+        raise HTTPException(status_code=404, detail="Session not found")
+        
+    messages = []
+    for msg in db_session.messages:
+        artifact_data = None
+        if msg.artifacts:
+            art = msg.artifacts[0]
+            artifact_data = {"type": art.type, "content": art.content}
+            
+        messages.append(MessageResponse(
+            role=msg.role.value,
+            content=msg.content,
+            artifact=artifact_data,
+            citations=None, # Citations not stored in DB yet, but frontend will expect this shape
+            created_at=msg.created_at.isoformat()
+        ))
+        
+    return SessionDetailResponse(
+        id=str(db_session.id),
+        title=db_session.title,
+        created_at=db_session.created_at.isoformat(),
+        messages=messages
+    )
+
+class SessionUpdateRequest(BaseModel):
+    title: str
+
+@router.patch("/sessions/{session_id}", response_model=SessionResponse)
+def update_session(session_id: str, req: SessionUpdateRequest, db: Session = Depends(get_db)):
+    db_session = db.query(domain.Session).filter(domain.Session.id == session_id).first()
+    if not db_session:
+        raise HTTPException(status_code=404, detail="Session not found")
+        
+    db_session.title = req.title
+    db.commit()
+    db.refresh(db_session)
+    return SessionResponse(id=str(db_session.id), title=db_session.title, created_at=db_session.created_at.isoformat())
 
 class MessageRequest(BaseModel):
     content: str
@@ -61,15 +119,17 @@ def send_message(
     from app.agents.router import route_and_execute
     
     try:
-        bot_reply_content, artifact = route_and_execute(db, message.content, message.skill, provider=x_llm_provider)
+        bot_reply_content, artifact, citations = route_and_execute(db, message.content, message.skill, provider=x_llm_provider)
     except Exception as e:
         import traceback
         traceback.print_exc()
         bot_reply_content = f"I'm sorry, the AI model encountered an error: {str(e)[:200]}. Please try again."
         artifact = None
+        citations = []
     
     assistant_msg = domain.Message(session_id=db_session.id, role=domain.MessageRole.assistant, content=bot_reply_content)
     db.add(assistant_msg)
+    db.flush()
     
     if artifact:
         db_artifact = domain.Artifact(
@@ -81,4 +141,4 @@ def send_message(
         
     db.commit()
     
-    return {"message": bot_reply_content, "artifact": artifact}
+    return {"message": bot_reply_content, "artifact": artifact, "citations": citations}

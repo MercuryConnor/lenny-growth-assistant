@@ -4,10 +4,11 @@ from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+DEFAULT_MODEL = "llama3.2:1b"
 
 class LLMFactory:
     @staticmethod
-    def get_llm(provider: str = "ollama", model_name: str = "llama3.2:1b"):
+    def get_llm(provider: str = "ollama", model_name: str = DEFAULT_MODEL):
         if provider == "ollama":
             return Ollama(
                 base_url=OLLAMA_BASE_URL,
