@@ -1,4 +1,4 @@
-.PHONY: build up down logs restart test clean frontend-install backend-install
+.PHONY: build up down logs restart test fetch-data ingest clean frontend-install backend-install
 
 # Docker Compose commands
 build:
@@ -15,6 +15,13 @@ logs:
 
 restart:
 	docker-compose restart
+
+# Transcript data
+fetch-data:
+	bash scripts/fetch_transcripts.sh
+
+ingest:
+	docker-compose run --rm ingest
 
 # Local development helpers
 frontend-install:
