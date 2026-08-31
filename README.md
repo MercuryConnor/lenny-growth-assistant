@@ -31,7 +31,7 @@ The most important engineering outcome is reproducibility: the transcript depend
 
 ## Demo
 
-**2–3 minute walkthrough:** urlYouTube demo playlisthttps://youtube.com/playlist?list=PLPP3E0ihdblc&si=jZA87H7PTDMOezQD
+**2–3 minute walkthrough:** YouTube demo: https://youtube.com/playlist?list=PLPP3E0ihdblc&si=jZA87H7PTDMOezQD
 
 The walkthrough covers the product, local Ollama flow, retrieval experience, artifact viewer, and a key implementation trade-off.
 
